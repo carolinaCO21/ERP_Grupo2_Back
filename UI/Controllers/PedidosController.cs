@@ -1,8 +1,9 @@
 ﻿using API.Domain.DTOs;
 using API.Domain.Exceptions;
 using API.Domain.Interfaces;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace UI.Controllers
 {
@@ -13,6 +14,7 @@ namespace UI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+    [Authorize]
     public class PedidosController : ControllerBase
     {
         private readonly IPedidoUseCase _pedidoUseCase;
@@ -25,6 +27,20 @@ namespace UI.Controllers
         {
             _pedidoUseCase = pedidoUseCase;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Obtiene el FirebaseUID del usuario autenticado desde el token JWT.
+        /// </summary>
+        private string GetFirebaseUid()
+        {
+            var uid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("user_id")?.Value;
+            
+            if (string.IsNullOrEmpty(uid))
+                throw new UnauthorizedAccessException("No se pudo obtener el UID del usuario autenticado.");
+            
+            return uid;
         }
 
         /// <summary>
@@ -113,26 +129,35 @@ namespace UI.Controllers
         }
 
         /// <summary>
-        /// Crea un nuevo pedido a proveedor.
+        /// Crea un nuevo pedido. El usuario se obtiene del token de autenticación.
         /// </summary>
         /// <param name="pedidoDto">Datos del pedido a crear.</param>
         /// <returns>Detalle del pedido creado.</returns>
         /// <response code="201">Pedido creado correctamente.</response>
         /// <response code="400">Error de validación o regla de negocio.</response>
+        /// <response code="401">Usuario no autenticado.</response>
         /// <response code="404">Proveedor, usuario o producto no encontrado.</response>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponseDTO<PedidoDetailDTO>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponseDTO<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponseDTO<object>), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ApiResponseDTO<object>), StatusCodes.Status404NotFound)]
         public ActionResult<ApiResponseDTO<PedidoDetailDTO>> Create([FromBody] PedidoCreateDTO pedidoDto)
         {
             try
             {
-                var pedido = _pedidoUseCase.CreatePedido(pedidoDto);
+                var firebaseUid = GetFirebaseUid();
+                var pedido = _pedidoUseCase.CreatePedido(pedidoDto, firebaseUid);
+                
                 return CreatedAtAction(
                     nameof(GetById),
                     new { id = pedido.Id },
                     ApiResponseDTO<PedidoDetailDTO>.Ok(pedido, "Pedido creado correctamente."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Usuario no autenticado");
+                return Unauthorized(ApiResponseDTO<object>.Error(ex.Message));
             }
             catch (EntityNotFoundException ex)
             {

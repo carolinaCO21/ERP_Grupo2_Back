@@ -29,10 +29,12 @@ namespace API.Domain.Interfaces
 
         /// <summary>
         /// Crea un nuevo pedido con estado Pendiente, validando todas las reglas de negocio.
+        /// El usuario se identifica mediante su FirebaseUID obtenido del token de autenticación.
         /// </summary>
         /// <param name="pedidoDto">Datos del pedido a crear.</param>
+        /// <param name="firebaseUid">UID de Firebase del usuario autenticado.</param>
         /// <returns>Detalle del pedido creado.</returns>
-        PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto);
+        PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto, string firebaseUid);
 
         /// <summary>
         /// Actualiza un pedido existente respetando la máquina de estados

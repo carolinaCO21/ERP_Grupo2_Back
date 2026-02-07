@@ -14,6 +14,15 @@ namespace API.Domain.Repos
         User? GetById(int id);
 
         /// <summary>
+        /// Obtiene un usuario por su UID de Firebase.
+        /// </summary>
+        /// <param name="firebaseUid">UID de Firebase del usuario.</param>
+        /// <returns>El usuario encontrado o null si no existe.</returns>
+        User? GetByFirebaseUid(string firebaseUid);
+
+
+
+        /// <summary>
         /// Obtiene el nombre completo (Nombre + Apellidos) de un usuario.
         /// Optimizado para construir DTOs sin cargar la entidad completa.
         /// </summary>

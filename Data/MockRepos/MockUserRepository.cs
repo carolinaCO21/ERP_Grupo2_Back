@@ -1,10 +1,5 @@
 ﻿using API.Domain.Entities;
 using API.Domain.Repos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Data.MockRepos
 {
@@ -14,7 +9,6 @@ namespace Data.MockRepos
     /// </summary>
     public class MockUserRepository : IUserRepository
     {
-
         /// <summary>Colección en memoria de usuarios simulados.</summary>
         private readonly List<User> _users;
 
@@ -38,15 +32,16 @@ namespace Data.MockRepos
         }
 
         /// <inheritdoc />
+        public User? GetByFirebaseUid(string firebaseUid)
+        {
+            return _users.FirstOrDefault(u => u.FirebaseUid == firebaseUid);
+        }
+
+        /// <inheritdoc />
         public string? GetNombreCompletoById(int id)
         {
             var user = _users.FirstOrDefault(u => u.Id == id);
             return user != null ? $"{user.Nombre} {user.Apellidos}" : null;
         }
     }
-
-
-
-
-
 }

@@ -1,4 +1,5 @@
 ﻿using API.Domain.Entities;
+using API.Domain.Enums;
 using API.Domain.Repos;
 using System;
 using System.Collections.Generic;
@@ -34,7 +35,7 @@ namespace Data.MockRepos
                 {
                     Id = 1,
                     FechaPedido = DateTime.UtcNow.AddDays(-5),
-                    Estado = "Pendiente",
+                    Estado = EstadoPedido.Pendiente.ToString(),
                     Subtotal = 100.00m,
                     Impuestos = 21.00m,
                     Total = 121.00m
@@ -43,7 +44,7 @@ namespace Data.MockRepos
                 {
                     Id = 2,
                     FechaPedido = DateTime.UtcNow.AddDays(-2),
-                    Estado = "Aprobado",
+                    Estado = EstadoPedido.Aprobado.ToString(),
                     Subtotal = 500.00m,
                     Impuestos = 105.00m,
                     Total = 605.00m

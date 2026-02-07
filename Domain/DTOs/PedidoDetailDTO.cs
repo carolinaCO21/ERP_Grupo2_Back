@@ -11,13 +11,13 @@ namespace API.Domain.DTOs
 
         /// <summary>Número de pedido generado.</summary>
         public string NumeroPedido { get; }
-
+        //// El proveedor sí viene del body (el usuario elige a quién pedir)
         /// <summary>Identificador del proveedor.</summary>
         public int IdProveedor { get; }
 
         /// <summary>Nombre del proveedor.</summary>
         public string NombreProveedor { get; }
-
+        //// El usuario viene del token, no del body en un etorno real
         /// <summary>Identificador del usuario que creó el pedido.</summary>
         public int IdUsuario { get; }
 

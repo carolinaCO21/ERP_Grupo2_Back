@@ -96,23 +96,25 @@ namespace API.Domain.UseCases
 
         /// <summary>
         /// Crea un nuevo pedido con estado Pendiente validando todas las reglas de negocio:
+        /// El usuario se obtiene a partir de su FirebaseUID.
         /// proveedor activo, usuario activo, productos en catálogo del proveedor,
         /// al menos una línea, y cálculo automático de importes.
         /// </summary>
         /// <param name="pedidoDto">Datos del pedido a crear.</param>
+        /// <param name="firebaseUid">UID de Firebase del usuario autenticado.</param>
         /// <returns>Detalle del pedido creado.</returns>
         /// <exception cref="EntityNotFoundException">Si el proveedor, usuario o algún producto no existe.</exception>
         /// <exception cref="BusinessRuleException">Si alguna regla de negocio se viola.</exception>
-        public PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto)
+        public PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto, string firebaseUid)
         {
             var proveedor = ValidarProveedorActivo(pedidoDto.IdProveedor);
-            var usuario = ValidarUsuarioActivo(pedidoDto.IdUsuario);
+            var usuario = ValidarUsuarioActivoPorFirebaseUid(firebaseUid);
             ValidarLineasNoVacias(pedidoDto.LineasPedido);
             ValidarProductosEnCatalogoProveedor(pedidoDto.IdProveedor, pedidoDto.LineasPedido);
 
             var numeroPedido = _pedidoRepository.GenerateNumeroPedido();
 
-            var pedido = new Pedido(numeroPedido, pedidoDto.IdProveedor, pedidoDto.IdUsuario, pedidoDto.DireccionEntrega);
+            var pedido = new Pedido(numeroPedido, pedidoDto.IdProveedor, usuario.Id, pedidoDto.DireccionEntrega);
             var pedidoCreado = _pedidoRepository.Create(pedido);
 
             var lineasCreadas = CrearLineasPedido(pedidoCreado.Id, pedidoDto.LineasPedido);
@@ -122,6 +124,26 @@ namespace API.Domain.UseCases
             _pedidoRepository.Update(pedidoCreado);
 
             return ConstruirPedidoDetailDTO(pedidoCreado);
+        }
+
+
+        /// <summary>
+        /// Valida que el usuario existe y está activo usando su FirebaseUID.
+        /// </summary>
+        /// <param name="firebaseUid">UID de Firebase del usuario.</param>
+        /// <returns>La entidad User validada.</returns>
+        private User ValidarUsuarioActivoPorFirebaseUid(string firebaseUid)
+        {
+            var usuario = _userRepository.GetByFirebaseUid(firebaseUid)
+                ?? throw new EntityNotFoundException("Pedido",$"No se encontró un usuario con FirebaseUID: {firebaseUid}");
+
+            if (!usuario.Activo)
+            {
+                throw new BusinessRuleException(
+                    $"El usuario '{usuario.Nombre} {usuario.Apellidos}' no está activo en el sistema.");
+            }
+
+            return usuario;
         }
 
         /// <summary>
@@ -204,7 +226,9 @@ namespace API.Domain.UseCases
         /// </summary>
         private static void ValidarEstado(string estado)
         {
-            if (!Enum.TryParse<EstadoPedido>(estado, out _))
+            if (!Enum.TryParse<EstadoPedido>(estado, ignoreCase: true, out var estadoParseado) ||
+
+                !Enum.IsDefined(typeof(EstadoPedido), estadoParseado))
             {
                 var estadosValidos = string.Join(", ", Enum.GetNames<EstadoPedido>());
                 throw new BusinessRuleException(
