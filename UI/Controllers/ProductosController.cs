@@ -1,6 +1,7 @@
 ﻿using API.Domain.DTOs;
 using API.Domain.Exceptions;
 using API.Domain.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace UI.Controllers
@@ -11,6 +12,7 @@ namespace UI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+    [Authorize]
     public class ProductosController : ControllerBase
     {
         private readonly IProductoUseCase _productoUseCase;

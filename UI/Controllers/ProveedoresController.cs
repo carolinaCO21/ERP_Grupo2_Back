@@ -1,6 +1,7 @@
 ﻿using API.Domain.DTOs;
 using API.Domain.Exceptions;
 using API.Domain.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,6 +13,7 @@ namespace UI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+    [Authorize]
     public class ProveedoresController : ControllerBase
     {
         private readonly IProveedorUseCase _proveedorUseCase;
