@@ -5,7 +5,7 @@
 
 # Firebase credentials (NO SUBIR)
 firebase-credentials.json
-
+serviceAccountKey.json
 
 # User-specific files
 *.rsuser
