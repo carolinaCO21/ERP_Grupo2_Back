@@ -4,8 +4,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using Data.DataBase;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Inicializar configuración de base de datos ─────────────────────────────
+Conection.Initialize(builder.Configuration);
 
 // ── Firebase Admin SDK ─────────────────────────────────────────────────────
 FirebaseApp.Create(new AppOptions
