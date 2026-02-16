@@ -1,4 +1,4 @@
-﻿using API.Domain.Entities;
+using API.Domain.Entities;
 using API.Domain.Repos;
 
 namespace Data.MockRepos
@@ -19,9 +19,9 @@ namespace Data.MockRepos
         {
             _users = new List<User>
             {
-                new User("firebase_uid_001", "admin@erp.com", "Carlos", "García López", "Admin") { Id = 1 },
-                new User("firebase_uid_002", "usuario@erp.com", "María", "Fernández Ruiz", "Usuario") { Id = 2 },
-                new User("firebase_uid_003", "supervisor@erp.com", "Juan", "Martínez Sánchez", "Supervisor") { Id = 3 }
+                new User { Id = 1, Username = "admin", Email = "admin@erp.com", Password = null, Nombre = "Carlos", Apellidos = "García López", Rol = "Admin", Activo = true },
+                new User { Id = 2, Username = "usuario", Email = "usuario@erp.com", Password = null, Nombre = "María", Apellidos = "Fernández Ruiz", Rol = "Usuario", Activo = true },
+                new User { Id = 3, Username = "supervisor", Email = "supervisor@erp.com", Password = null, Nombre = "Juan", Apellidos = "Martínez Sánchez", Rol = "Supervisor", Activo = true }
             };
         }
 
@@ -32,9 +32,15 @@ namespace Data.MockRepos
         }
 
         /// <inheritdoc />
-        public User? GetByFirebaseUid(string firebaseUid)
+        public User? GetByUsername(string username)
         {
-            return _users.FirstOrDefault(u => u.FirebaseUid == firebaseUid);
+            return _users.FirstOrDefault(u => u.Username == username);
+        }
+
+        /// <inheritdoc />
+        public User? GetByEmail(string email)
+        {
+            return _users.FirstOrDefault(u => u.Email == email);
         }
 
         /// <inheritdoc />

@@ -12,7 +12,7 @@ namespace Data.DataBase.Repos
             connection.Open();
 
             var command = new SqlCommand(
-                "SELECT id, username, email, nombre, apellidos, rol, activo FROM Users WHERE id = @Id",
+                "SELECT id, username, email, password, nombre, apellidos, rol, activo FROM Users WHERE id = @Id",
                 connection);
             command.Parameters.AddWithValue("@Id", id);
 
@@ -25,15 +25,34 @@ namespace Data.DataBase.Repos
             return null;
         }
 
-        public User? GetByFirebaseUid(string firebaseUid)
+        public User? GetByUsername(string username)
         {
             using var connection = new SqlConnection(Conection.GetConnectionString());
             connection.Open();
 
             var command = new SqlCommand(
-                "SELECT id, username, email, nombre, apellidos, rol, activo FROM Users WHERE username = @FirebaseUid",
+                "SELECT id, username, email, password, nombre, apellidos, rol, activo FROM Users WHERE username = @Username",
                 connection);
-            command.Parameters.AddWithValue("@FirebaseUid", firebaseUid);
+            command.Parameters.AddWithValue("@Username", username);
+
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                return MapearUsuario(reader);
+            }
+
+            return null;
+        }
+
+        public User? GetByEmail(string email)
+        {
+            using var connection = new SqlConnection(Conection.GetConnectionString());
+            connection.Open();
+
+            var command = new SqlCommand(
+                "SELECT id, username, email, password, nombre, apellidos, rol, activo FROM Users WHERE email = @Email",
+                connection);
+            command.Parameters.AddWithValue("@Email", email);
 
             using var reader = command.ExecuteReader();
             if (reader.Read())
@@ -57,9 +76,9 @@ namespace Data.DataBase.Repos
             using var reader = command.ExecuteReader();
             if (reader.Read())
             {
-                var nombre = reader.GetString(0);
-                var apellidos = reader.GetString(1);
-                return $"{nombre} {apellidos}";
+                var nombre = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                var apellidos = reader.IsDBNull(1) ? "" : reader.GetString(1);
+                return $"{nombre} {apellidos}".Trim();
             }
 
             return null;
@@ -67,16 +86,16 @@ namespace Data.DataBase.Repos
 
         private User MapearUsuario(SqlDataReader reader)
         {
-            return new User(
-                firebaseUid: reader.GetString(1),
-                email: reader.GetString(2),
-                nombre: reader.IsDBNull(3) ? "" : reader.GetString(3),
-                apellidos: reader.IsDBNull(4) ? "" : reader.GetString(4),
-                rol: reader.IsDBNull(5) ? "" : reader.GetString(5)
-            )
+            return new User
             {
                 Id = reader.GetInt32(0),
-                Activo = reader.GetBoolean(6)
+                Username = reader.GetString(1),
+                Email = reader.GetString(2),
+                Password = reader.IsDBNull(3) ? null : reader.GetString(3),
+                Nombre = reader.IsDBNull(4) ? null : reader.GetString(4),
+                Apellidos = reader.IsDBNull(5) ? null : reader.GetString(5),
+                Rol = reader.IsDBNull(6) ? null : reader.GetString(6),
+                Activo = !reader.IsDBNull(7) && reader.GetBoolean(7)
             };
         }
     }

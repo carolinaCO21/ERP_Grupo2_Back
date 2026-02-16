@@ -30,17 +30,17 @@ namespace UI.Controllers
         }
 
         /// <summary>
-        /// Obtiene el FirebaseUID del usuario autenticado desde el token JWT.
+        /// Obtiene el email del usuario autenticado desde el token JWT.
         /// </summary>
-        private string GetFirebaseUid()
+        private string GetUserEmail()
         {
-            var uid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? User.FindFirst("user_id")?.Value;
-            
-            if (string.IsNullOrEmpty(uid))
-                throw new UnauthorizedAccessException("No se pudo obtener el UID del usuario autenticado.");
-            
-            return uid;
+            var email = User.FindFirst(ClaimTypes.Email)?.Value
+                ?? User.FindFirst("email")?.Value;
+
+            if (string.IsNullOrEmpty(email))
+                throw new UnauthorizedAccessException("No se pudo obtener el email del usuario autenticado.");
+
+            return email;
         }
 
         /// <summary>
@@ -146,9 +146,9 @@ namespace UI.Controllers
         {
             try
             {
-                var firebaseUid = GetFirebaseUid();
-                var pedido = _pedidoUseCase.CreatePedido(pedidoDto, firebaseUid);
-                
+                var userEmail = GetUserEmail();
+                var pedido = _pedidoUseCase.CreatePedido(pedidoDto, userEmail);
+
                 return CreatedAtAction(
                     nameof(GetById),
                     new { id = pedido.Id },

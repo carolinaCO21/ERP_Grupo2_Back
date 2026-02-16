@@ -96,19 +96,19 @@ namespace API.Domain.UseCases
 
         /// <summary>
         /// Crea un nuevo pedido con estado Pendiente validando todas las reglas de negocio:
-        /// El usuario se obtiene a partir de su FirebaseUID.
+        /// El usuario se obtiene a partir de su email.
         /// proveedor activo, usuario activo, productos en catálogo del proveedor,
         /// al menos una línea, y cálculo automático de importes.
         /// </summary>
         /// <param name="pedidoDto">Datos del pedido a crear.</param>
-        /// <param name="firebaseUid">UID de Firebase del usuario autenticado.</param>
+        /// <param name="userEmail">Email del usuario autenticado.</param>
         /// <returns>Detalle del pedido creado.</returns>
         /// <exception cref="EntityNotFoundException">Si el proveedor, usuario o algún producto no existe.</exception>
         /// <exception cref="BusinessRuleException">Si alguna regla de negocio se viola.</exception>
-        public PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto, string firebaseUid)
+        public PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto, string userEmail)
         {
             var proveedor = ValidarProveedorActivo(pedidoDto.IdProveedor);
-            var usuario = ValidarUsuarioActivoPorFirebaseUid(firebaseUid);
+            var usuario = ValidarUsuarioActivoPorEmail(userEmail);
             ValidarLineasNoVacias(pedidoDto.LineasPedido);
             ValidarProductosEnCatalogoProveedor(pedidoDto.IdProveedor, pedidoDto.LineasPedido);
 
@@ -128,14 +128,14 @@ namespace API.Domain.UseCases
 
 
         /// <summary>
-        /// Valida que el usuario existe y está activo usando su FirebaseUID.
+        /// Valida que el usuario existe y está activo usando su email.
         /// </summary>
-        /// <param name="firebaseUid">UID de Firebase del usuario.</param>
+        /// <param name="email">Email del usuario.</param>
         /// <returns>La entidad User validada.</returns>
-        private User ValidarUsuarioActivoPorFirebaseUid(string firebaseUid)
+        private User ValidarUsuarioActivoPorEmail(string email)
         {
-            var usuario = _userRepository.GetByFirebaseUid(firebaseUid)
-                ?? throw new EntityNotFoundException("Pedido",$"No se encontró un usuario con FirebaseUID: {firebaseUid}");
+            var usuario = _userRepository.GetByEmail(email)
+                ?? throw new EntityNotFoundException("Pedido",$"No se encontró un usuario con email: {email}");
 
             if (!usuario.Activo)
             {
