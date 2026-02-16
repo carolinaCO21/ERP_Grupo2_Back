@@ -38,6 +38,12 @@ builder.Services.AddAuthorization();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// ── HttpClient para comunicación con Firebase REST API ─────────────────────
+builder.Services.AddHttpClient();
+
+// ── HttpClient para comunicación con Firebase REST API ─────────────────────
+builder.Services.AddHttpClient();
+
 // ── Swagger/OpenAPI ────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
