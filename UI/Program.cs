@@ -12,16 +12,46 @@ var builder = WebApplication.CreateBuilder(args);
 Conection.Initialize(builder.Configuration);
 
 // ── Firebase Admin SDK ─────────────────────────────────────────────────────
-FirebaseApp.Create(new AppOptions
+var credentialPath = builder.Configuration["Firebase:CredentialPath"] ?? "firebase-credentials.json";
+
+if (File.Exists(credentialPath))
 {
-    Credential = GoogleCredential.FromFile("firebase-credentials.json")
-});
+    FirebaseApp.Create(new AppOptions
+    {
+        Credential = GoogleCredential.FromFile(credentialPath)
+    });
+}
+else if (builder.Environment.IsProduction())
+{
+    var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_CREDENTIALS");
+    if (!string.IsNullOrEmpty(firebaseJson))
+    {
+        FirebaseApp.Create(new AppOptions
+        {
+            Credential = GoogleCredential.FromJson(firebaseJson)
+        });
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            "Firebase credentials not found. Set FIREBASE_CREDENTIALS environment variable in Azure.");
+    }
+}
+else
+{
+    throw new FileNotFoundException($"Firebase credentials file not found: {credentialPath}");
+}
 
 // ── Autenticación con Firebase ─────────────────────────────────────────────
+var projectId = builder.Configuration["Firebase:ProjectId"];
+if (string.IsNullOrEmpty(projectId))
+{
+    throw new InvalidOperationException("Firebase:ProjectId is not configured in appsettings.json");
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var projectId = builder.Configuration["Firebase:ProjectId"];
         options.Authority = $"https://securetoken.google.com/{projectId}";
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -35,11 +65,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// ── CORS para permitir requests desde frontend ─────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
-// ── HttpClient para comunicación con Firebase REST API ─────────────────────
-builder.Services.AddHttpClient();
 
 // ── HttpClient para comunicación con Firebase REST API ─────────────────────
 builder.Services.AddHttpClient();
@@ -52,14 +90,13 @@ builder.Services.AddSwaggerGen(options =>
     {
         Version = "v1",
         Title = "ERP Grupo 2 - API",
-        Description = "API para gestión de pedidos a proveedores",
+        Description = "API para gestión de pedidos a proveedores con Firebase Authentication",
         Contact = new OpenApiContact
         {
             Name = "Equipo Grupo 2",
         }
     });
 
-    // Configurar Swagger para usar Bearer Token
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header usando Bearer. Ejemplo: 'Bearer {token}'",
@@ -84,7 +121,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
-    // Incluir comentarios XML en la documentación
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
     if (File.Exists(xmlPath))
@@ -106,12 +142,23 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
+    app.UseSwagger();
+    app.UseSwaggerUI(c => 
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "ERP API v1");
+        c.RoutePrefix = string.Empty;
+    });
     app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
 
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// ── CORS debe ir antes de Authentication/Authorization ────────────────────
+app.UseCors("AllowAll");
 
 // ── Middleware de autenticación (orden importante) ─────────────────────────
 app.UseAuthentication();

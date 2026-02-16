@@ -10,7 +10,7 @@ serviceAccountKey.json
 # Configuration files with sensitive data (NO SUBIR CREDENCIALES REALES)
 **/appsettings.Development.json
 **/appsettings.Production.json
-**/appsettings.Staging.json
+
 
 # User-specific files
 *.rsuser
