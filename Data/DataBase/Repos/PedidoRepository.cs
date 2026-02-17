@@ -193,15 +193,42 @@ namespace Data.DataBase.Repos
             connection.Open();
 
             var year = DateTime.UtcNow.Year;
-            var command = new SqlCommand(
-                @"SELECT COUNT(*) FROM Pedidos WHERE numero_pedido LIKE @Pattern",
-                connection);
-            command.Parameters.AddWithValue("@Pattern", $"PED-{year}-%");
+            
+            // Usar transacción para garantizar atomicidad
+            using var transaction = connection.BeginTransaction();
+            
+            try
+            {
+                var command = new SqlCommand(
+                    @"SELECT TOP 1 numero_pedido 
+                      FROM Pedidos WITH (UPDLOCK, HOLDLOCK)
+                      WHERE numero_pedido LIKE @Pattern 
+                      ORDER BY numero_pedido DESC",
+                    connection, transaction);
+                
+                command.Parameters.AddWithValue("@Pattern", $"PED-{year}-%");
 
-            var count = (int)command.ExecuteScalar();
-            var secuencial = count + 1;
+                var ultimoNumero = command.ExecuteScalar() as string;
+                int secuencial = 1;
 
-            return $"PED-{year}-{secuencial:D5}";
+                if (!string.IsNullOrEmpty(ultimoNumero))
+                {
+                    // Extraer el número secuencial del formato PED-2026-00005
+                    var partes = ultimoNumero.Split('-');
+                    if (partes.Length == 3 && int.TryParse(partes[2], out var ultimoSecuencial))
+                    {
+                        secuencial = ultimoSecuencial + 1;
+                    }
+                }
+
+                transaction.Commit();
+                return $"PED-{year}-{secuencial:D5}";
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
         private Pedido MapearPedido(SqlDataReader reader)

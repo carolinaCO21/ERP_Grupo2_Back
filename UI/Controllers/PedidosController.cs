@@ -146,8 +146,13 @@ namespace UI.Controllers
         {
             try
             {
+                _logger.LogInformation("Iniciando creación de pedido. DTO recibido: {@PedidoDto}", pedidoDto);
+                
                 var userEmail = GetUserEmail();
+                _logger.LogInformation("Email de usuario obtenido: {Email}", userEmail);
+                
                 var pedido = _pedidoUseCase.CreatePedido(pedidoDto, userEmail);
+                _logger.LogInformation("Pedido creado exitosamente con ID: {Id}", pedido.Id);
 
                 return CreatedAtAction(
                     nameof(GetById),
@@ -168,6 +173,11 @@ namespace UI.Controllers
             {
                 _logger.LogWarning(ex, "Regla de negocio violada al crear pedido");
                 return BadRequest(ApiResponseDTO<object>.Error(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inesperado al crear pedido");
+                return StatusCode(500, ApiResponseDTO<object>.Error($"Error interno del servidor: {ex.Message}"));
             }
         }
 

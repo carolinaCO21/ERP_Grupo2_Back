@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using System.Text.Json;
 using Data.DataBase;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,13 +14,19 @@ Conection.Initialize(builder.Configuration);
 
 // ── Firebase Admin SDK ─────────────────────────────────────────────────────
 var credentialPath = builder.Configuration["Firebase:CredentialPath"] ?? "firebase-credentials.json";
+string? projectId = null;
 
 if (File.Exists(credentialPath))
 {
+    var credentialJson = File.ReadAllText(credentialPath);
     FirebaseApp.Create(new AppOptions
     {
-        Credential = GoogleCredential.FromFile(credentialPath)
+        Credential = GoogleCredential.FromJson(credentialJson)
     });
+    
+    // Extraer project_id del archivo de credenciales
+    var credentialDoc = JsonDocument.Parse(credentialJson);
+    projectId = credentialDoc.RootElement.GetProperty("project_id").GetString();
 }
 else if (builder.Environment.IsProduction())
 {
@@ -30,6 +37,10 @@ else if (builder.Environment.IsProduction())
         {
             Credential = GoogleCredential.FromJson(firebaseJson)
         });
+        
+        // Extraer project_id de la variable de entorno
+        var credentialDoc = JsonDocument.Parse(firebaseJson);
+        projectId = credentialDoc.RootElement.GetProperty("project_id").GetString();
     }
     else
     {
@@ -43,10 +54,15 @@ else
 }
 
 // ── Autenticación con Firebase ─────────────────────────────────────────────
-var projectId = builder.Configuration["Firebase:ProjectId"];
+// Fallback a appsettings.json si no se pudo extraer del archivo de credenciales
 if (string.IsNullOrEmpty(projectId))
 {
-    throw new InvalidOperationException("Firebase:ProjectId is not configured in appsettings.json");
+    projectId = builder.Configuration["Firebase:ProjectId"];
+}
+
+if (string.IsNullOrEmpty(projectId))
+{
+    throw new InvalidOperationException("Firebase ProjectId could not be determined from credentials file or appsettings.json");
 }
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -80,6 +96,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllersWithViews();
 
 // ── HttpClient para comunicación con Firebase REST API ─────────────────────
+builder.Services.AddHttpClient();
 builder.Services.AddHttpClient();
 
 // ── Swagger/OpenAPI ────────────────────────────────────────────────────────
