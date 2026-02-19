@@ -1,3 +1,5 @@
+using API.Domain.DTOs;
+using API.Domain.DTOs;
 using API.Domain.Entities;
 using API.Domain.Repos;
 using Microsoft.AspNetCore.Authorization;
@@ -194,77 +196,4 @@ namespace UI.Controllers
             }
         }
     }
-
-    #region DTOs
-
-    /// <summary>
-    /// Modelo para recibir credenciales de login.
-    /// </summary>
-    public class LoginRequest
-    {
-        /// <summary>Email del usuario.</summary>
-        public string Email { get; set; } = string.Empty;
-
-        /// <summary>Contraseña del usuario.</summary>
-        public string Password { get; set; } = string.Empty;
-    }
-
-    /// <summary>
-    /// Respuesta de login exitoso con token de Firebase y datos del usuario desde SQL Server.
-    /// </summary>
-    public class LoginResponse
-    {
-        /// <summary>Token JWT de Firebase para usar en requests subsiguientes.</summary>
-        public string Token { get; set; } = string.Empty;
-
-        /// <summary>Token de refresco de Firebase.</summary>
-        public string RefreshToken { get; set; } = string.Empty;
-
-        /// <summary>Tiempo de expiración del token en segundos.</summary>
-        public string ExpiresIn { get; set; } = string.Empty;
-
-        /// <summary>Información del usuario desde SQL Server.</summary>
-        public AuthResponse User { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Respuesta de autenticación con información del usuario.
-    /// </summary>
-    public class AuthResponse
-    {
-        /// <summary>ID del usuario en la base de datos SQL Server.</summary>
-        public int UserId { get; set; }
-
-        /// <summary>Username del usuario.</summary>
-        public string Username { get; set; } = string.Empty;
-
-        /// <summary>Email del usuario.</summary>
-        public string Email { get; set; } = string.Empty;
-
-        /// <summary>Nombre del usuario.</summary>
-        public string? Nombre { get; set; }
-
-        /// <summary>Apellidos del usuario.</summary>
-        public string? Apellidos { get; set; }
-
-        /// <summary>Rol del usuario en el sistema.</summary>
-        public string? Rol { get; set; }
-
-        /// <summary>Indica si el token es válido.</summary>
-        public bool IsValid { get; set; }
-    }
-
-    /// <summary>
-    /// Respuesta de Firebase Auth REST API.
-    /// </summary>
-    internal class FirebaseAuthResponse
-    {
-        public string idToken { get; set; } = string.Empty;
-        public string email { get; set; } = string.Empty;
-        public string refreshToken { get; set; } = string.Empty;
-        public string expiresIn { get; set; } = string.Empty;
-        public string localId { get; set; } = string.Empty;
-    }
-
-    #endregion
 }
