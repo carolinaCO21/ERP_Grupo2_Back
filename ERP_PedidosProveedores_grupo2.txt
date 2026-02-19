@@ -1,0 +1,1055 @@
+ERP_PedidosProveedores/
+================================================================================
+                                    BACKEND (ASP.NET API)
+================================================================================
+
+	API/
+		Domain/
+			Entities/
+			─────────────────────────────────────────────────────────────
+			Las entidades representan las tablas de la base de datos.
+			Cada propiedad de la clase corresponde a una columna de la tabla.
+			─────────────────────────────────────────────────────────────
+
+				User.cs
+				Representa un usuario del sistema ERP.
+				─────────────────────────────────────────────────────────
+				- int Id { get; set; }                    // Identificador único del usuario
+				- string FirebaseUid { get; set; }        // UID de Firebase para vincular autenticación
+				- string Email { get; set; }              // Correo electrónico del usuario
+				- string Nombre { get; set; }             // Nombre del usuario
+				- string Apellidos { get; set; }          // Apellidos del usuario
+				- string Rol { get; set; }                // Rol del usuario (Admin, Usuario, etc.)
+				- bool Activo { get; set; }               // Indica si el usuario está activo en el sistema
+				+ User(...)                               // Constructor para inicializar todas las propiedades
+
+
+				Proveedor.cs
+				Representa una empresa proveedora a la que se le pueden hacer pedidos.
+				─────────────────────────────────────────────────────────
+				- int Id { get; set; }                    // Identificador único del proveedor
+				- string NombreEmpresa { get; set; }      // Nombre comercial de la empresa
+				- string Cif { get; set; }                // CIF/NIF de la empresa (único)
+				- string Direccion { get; set; }          // Dirección fiscal
+				- string Ciudad { get; set; }             // Ciudad donde se ubica
+				- string Provincia { get; set; }          // Provincia
+				- string CodigoPostal { get; set; }       // Código postal
+				- string Telefono { get; set; }           // Teléfono de contacto
+				- string Email { get; set; }              // Email de contacto
+				- bool Activo { get; set; }               // Indica si el proveedor está activo
+				+ Proveedor(...)                          // Constructor
+
+
+				Producto.cs
+				Representa un producto que se puede pedir a los proveedores.
+				─────────────────────────────────────────────────────────
+				- int Id { get; set; }                    // Identificador único del producto
+				- string CodigoProducto { get; set; }     // Código interno del producto (SKU)
+				- string Nombre { get; set; }             // Nombre del producto
+				- string Descripcion { get; set; }        // Descripción detallada
+				- string Categoria { get; set; }          // Categoría a la que pertenece
+				- string UnidadMedida { get; set; }       // Unidad de medida (unidades, kg, litros, etc.)
+				- decimal Precio { get; set; }            // Precio base del producto
+				- int StockActual { get; set; }           // Cantidad actual en inventario
+				- bool Activo { get; set; }               // Indica si el producto está activo
+				+ Producto(...)                           // Constructor
+
+
+				Pedido.cs
+				Representa la cabecera de un pedido realizado a un proveedor.
+				Contiene la información general del pedido (quién, cuándo, totales).
+				─────────────────────────────────────────────────────────
+				- int Id { get; set; }                    // Identificador único del pedido
+				- string NumeroPedido { get; set; }       // Número de pedido generado (ej: PED-2024-00001)
+				- int IdProveedor { get; set; }           // FK al proveedor al que se hace el pedido
+				- int IdUsuario { get; set; }             // FK al usuario que creó el pedido
+				- DateTime FechaPedido { get; set; }      // Fecha y hora de creación del pedido
+				- string Estado { get; set; }             // Estado actual (Pendiente, Aprobado, Enviado, etc.)
+				- decimal Subtotal { get; set; }          // Suma de todas las líneas sin impuestos
+				- decimal Impuestos { get; set; }         // Total de impuestos (IVA)
+				- decimal Total { get; set; }             // Subtotal + Impuestos
+				- string DireccionEntrega { get; set; }   // Dirección donde se debe entregar el pedido
+				+ Pedido(...)                             // Constructor
+				+ Proveedor Proveedor { get; set; }       // Propiedad de navegación al proveedor
+				+ User Usuario { get; set; }              // Propiedad de navegación al usuario
+				+ List<LineaPedido> LineasPedido { get; set; }  // Lista de líneas del pedido
+
+
+				LineaPedido.cs
+				Representa cada línea/detalle de un pedido (cada producto pedido).
+				Un pedido puede tener múltiples líneas.
+				─────────────────────────────────────────────────────────
+				- int Id { get; set; }                    // Identificador único de la línea
+				- int IdPedido { get; set; }              // FK al pedido al que pertenece
+				- int IdProducto { get; set; }            // FK al producto que se pide
+				- int Cantidad { get; set; }              // Cantidad de unidades pedidas
+				- decimal PrecioUnitario { get; set; }    // Precio por unidad en el momento del pedido
+				- decimal Subtotal { get; set; }          // Cantidad * PrecioUnitario
+				- decimal IvaPorcentaje { get; set; }     // Porcentaje de IVA aplicado (ej: 21.00)
+				- decimal TotalLinea { get; set; }        // Subtotal + IVA de esta línea
+				+ LineaPedido(...)                        // Constructor
+				+ Producto Producto { get; set; }         // Propiedad de navegación al producto
+				+ Pedido Pedido { get; set; }             // Propiedad de navegación al pedido
+
+
+				ProductoProveedor.cs
+				Tabla intermedia que relaciona productos con proveedores.
+				Indica qué productos ofrece cada proveedor y a qué precio.
+				─────────────────────────────────────────────────────────
+				- int Id { get; set; }                    // Identificador único
+				- int IdProveedor { get; set; }           // FK al proveedor
+				- int IdProducto { get; set; }            // FK al producto
+				- decimal PrecioUnitario { get; set; }    // Precio que cobra este proveedor por este producto
+				- bool Activo { get; set; }               // Si esta relación está activa
+				+ ProductoProveedor(...)                  // Constructor
+				+ Proveedor Proveedor { get; set; }       // Propiedad de navegación
+				+ Producto Producto { get; set; }         // Propiedad de navegación
+
+
+
+			DTOs/
+			─────────────────────────────────────────────────────────────
+			Los DTOs (Data Transfer Objects) son clases que definen qué datos
+			se envían/reciben en las peticiones API. Evitan exponer las entidades
+			directamente y permiten controlar qué información se comparte.
+			─────────────────────────────────────────────────────────────
+
+				PedidoListDTO.cs
+				DTO para mostrar pedidos en un listado (información resumida).
+				Se usa en el endpoint GET /api/pedidos para no cargar todos los detalles.
+				─────────────────────────────────────────────────────────
+				+ int Id { get; }                         // ID del pedido
+				+ string NumeroPedido { get; }            // Número de pedido
+				+ string NombreProveedor { get; }         // Nombre del proveedor (no el ID)
+				+ DateTime FechaPedido { get; }           // Fecha de creación
+				+ string Estado { get; }                  // Estado actual
+				+ decimal Total { get; }                  // Total del pedido
+				+ PedidoListDTO(Pedido pedido, string nombreProveedor)  
+				  // Constructor que transforma un Pedido en este DTO
+
+
+				PedidoDetailDTO.cs
+				DTO con toda la información de un pedido, incluyendo sus líneas.
+				Se usa cuando se consulta el detalle de un pedido específico.
+				─────────────────────────────────────────────────────────
+				+ int Id { get; }                         // ID del pedido
+				+ string NumeroPedido { get; }            // Número de pedido
+				+ int IdProveedor { get; }                // ID del proveedor
+				+ string NombreProveedor { get; }         // Nombre del proveedor
+				+ int IdUsuario { get; }                  // ID del usuario que lo creó
+				+ string NombreUsuario { get; }           // Nombre completo del usuario
+				+ DateTime FechaPedido { get; }           // Fecha de creación
+				+ string Estado { get; }                  // Estado actual
+				+ decimal Subtotal { get; }               // Subtotal sin IVA
+				+ decimal Impuestos { get; }              // Total de impuestos
+				+ decimal Total { get; }                  // Total final
+				+ string DireccionEntrega { get; }        // Dirección de entrega
+				+ List<LineaPedidoDTO> LineasPedido { get; }  // Lista de líneas con detalle
+				+ PedidoDetailDTO(...)                    // Constructor
+
+
+				LineaPedidoDTO.cs
+				DTO para mostrar el detalle de cada línea de un pedido.
+				Incluye información del producto para mostrar en pantalla.
+				─────────────────────────────────────────────────────────
+				+ int Id { get; }                         // ID de la línea
+				+ int IdProducto { get; }                 // ID del producto
+				+ string NombreProducto { get; }          // Nombre del producto
+				+ string CodigoProducto { get; }          // Código/SKU del producto
+				+ int Cantidad { get; }                   // Cantidad pedida
+				+ decimal PrecioUnitario { get; }         // Precio unitario
+				+ decimal Subtotal { get; }               // Subtotal de la línea
+				+ decimal IvaPorcentaje { get; }          // Porcentaje de IVA
+				+ decimal TotalLinea { get; }             // Total con IVA
+				+ LineaPedidoDTO(LineaPedido linea, string nombreProducto, string codigoProducto)
+
+
+				PedidoCreateDTO.cs
+				DTO que recibe los datos necesarios para crear un nuevo pedido.
+				El frontend envía este objeto en el POST /api/pedidos.
+				─────────────────────────────────────────────────────────
+				+ int IdProveedor { get; set; }           // Proveedor seleccionado
+				+ int IdUsuario { get; set; }             // Usuario que crea el pedido
+				+ string DireccionEntrega { get; set; }   // Dirección de entrega
+				+ List<LineaPedidoCreateDTO> LineasPedido { get; set; }  // Líneas a crear
+
+
+				LineaPedidoCreateDTO.cs
+				DTO con los datos de cada línea al crear/actualizar un pedido.
+				─────────────────────────────────────────────────────────
+				+ int IdProducto { get; set; }            // Producto a pedir
+				+ int Cantidad { get; set; }              // Cantidad
+				+ decimal PrecioUnitario { get; set; }    // Precio unitario
+				+ decimal IvaPorcentaje { get; set; }     // Porcentaje de IVA a aplicar
+
+
+				PedidoUpdateDTO.cs
+				DTO para actualizar un pedido existente.
+				Similar al Create pero incluye el ID del pedido a modificar.
+				─────────────────────────────────────────────────────────
+				+ int Id { get; set; }                    // ID del pedido a actualizar
+				+ string Estado { get; set; }             // Nuevo estado
+				+ string DireccionEntrega { get; set; }   // Nueva dirección (opcional)
+				+ List<LineaPedidoCreateDTO> LineasPedido { get; set; }  // Nuevas líneas
+
+
+				ProveedorDTO.cs
+				DTO para mostrar información de proveedores en la API.
+				─────────────────────────────────────────────────────────
+				+ int Id { get; }                         // ID del proveedor
+				+ string NombreEmpresa { get; }           // Nombre de la empresa
+				+ string Cif { get; }                     // CIF
+				+ string Telefono { get; }                // Teléfono
+				+ string Email { get; }                   // Email
+				+ bool Activo { get; }                    // Si está activo
+				+ ProveedorDTO(Proveedor proveedor)       // Constructor desde entidad
+
+
+				ProductoDTO.cs
+				DTO para mostrar información de productos en la API.
+				─────────────────────────────────────────────────────────
+				+ int Id { get; }                         // ID del producto
+				+ string CodigoProducto { get; }          // Código/SKU
+				+ string Nombre { get; }                  // Nombre
+				+ string Categoria { get; }               // Categoría
+				+ string UnidadMedida { get; }            // Unidad de medida
+				+ decimal Precio { get; }                 // Precio base
+				+ int StockActual { get; }                // Stock disponible
+				+ ProductoDTO(Producto producto)          // Constructor desde entidad
+
+
+				ProductoProveedorDTO.cs
+				DTO para mostrar qué productos ofrece un proveedor con sus precios.
+				─────────────────────────────────────────────────────────
+				+ int IdProducto { get; }                 // ID del producto
+				+ string CodigoProducto { get; }          // Código del producto
+				+ string NombreProducto { get; }          // Nombre del producto
+				+ decimal PrecioUnitario { get; }         // Precio de este proveedor
+				+ ProductoProveedorDTO(ProductoProveedor pp, string codigoProducto, string nombreProducto)
+
+
+				ApiResponseDTO.cs
+				DTO genérico para estandarizar todas las respuestas de la API.
+				Envuelve los datos en un formato consistente con estado y mensaje.
+				─────────────────────────────────────────────────────────
+				+ bool Success { get; set; }              // true si la operación fue exitosa
+				+ string Message { get; set; }            // Mensaje descriptivo (error o éxito)
+				+ T Data { get; set; }                    // Datos de respuesta (genérico)
+				+ ApiResponseDTO(bool success, string message, T data)  // Constructor
+
+
+
+			Interfaces/
+			─────────────────────────────────────────────────────────────
+			Las interfaces definen los contratos (métodos) que deben implementar
+			los casos de uso. Permiten desacoplar el código y facilitan testing.
+			─────────────────────────────────────────────────────────────
+
+				IPedidoUseCase.cs
+				Define las operaciones de negocio disponibles para pedidos.
+				─────────────────────────────────────────────────────────
+				+ List<PedidoListDTO> GetAllPedidos()
+				  // Obtiene todos los pedidos en formato lista resumida
+
+				+ List<PedidoListDTO> GetPedidosByProveedor(int proveedorId)
+				  // Filtra pedidos por proveedor específico
+
+				+ List<PedidoListDTO> GetPedidosByEstado(string estado)
+				  // Filtra pedidos por estado (Pendiente, Aprobado, etc.)
+
+				+ PedidoDetailDTO GetPedidoById(int pedidoId)
+				  // Obtiene el detalle completo de un pedido con sus líneas
+
+				+ PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto)
+				  // Crea un nuevo pedido y devuelve su detalle
+
+				+ PedidoDetailDTO UpdatePedido(PedidoUpdateDTO pedidoDto)
+				  // Actualiza un pedido existente
+
+				+ bool DeletePedido(int pedidoId)
+				  // Elimina un pedido y sus líneas, devuelve true si tuvo éxito
+
+
+				IProveedorUseCase.cs
+				Define las operaciones de negocio para proveedores.
+				─────────────────────────────────────────────────────────
+				+ List<ProveedorDTO> GetAllProveedores()
+				  // Obtiene lista de todos los proveedores activos
+
+				+ ProveedorDTO GetProveedorById(int proveedorId)
+				  // Obtiene datos de un proveedor específico
+
+				+ List<ProductoProveedorDTO> GetProductosByProveedor(int proveedorId)
+				  // Obtiene los productos que ofrece un proveedor con sus precios
+
+
+				IProductoUseCase.cs
+				Define las operaciones de negocio para productos.
+				─────────────────────────────────────────────────────────
+				+ List<ProductoDTO> GetAllProductos()
+				  // Obtiene lista de todos los productos activos
+
+				+ ProductoDTO GetProductoById(int productoId)
+				  // Obtiene datos de un producto específico
+
+
+
+			Repos/
+			─────────────────────────────────────────────────────────────
+			Interfaces de repositorio. Definen las operaciones de acceso a datos
+			que deben implementarse. Separan la lógica de negocio del acceso a BD.
+			─────────────────────────────────────────────────────────────
+
+				IPedidoRepository.cs
+				Operaciones de acceso a datos para la tabla Pedidos.
+				─────────────────────────────────────────────────────────
+				+ List<Pedido> GetAll()
+				  // Obtiene todos los pedidos de la BD
+
+				+ List<Pedido> GetByProveedorId(int proveedorId)
+				  // Obtiene pedidos filtrados por proveedor
+
+				+ List<Pedido> GetByEstado(string estado)
+				  // Obtiene pedidos filtrados por estado
+
+				+ Pedido GetById(int id)
+				  // Obtiene un pedido por su ID
+
+				+ Pedido Create(Pedido pedido)
+				  // Inserta un nuevo pedido en la BD
+
+				+ Pedido Update(Pedido pedido)
+				  // Actualiza un pedido existente
+
+				+ bool Delete(int id)
+				  // Elimina un pedido por su ID
+
+				+ string GenerateNumeroPedido()
+				  // Genera un número de pedido único (ej: PED-2024-00001)
+
+
+				ILineaPedidoRepository.cs
+				Operaciones de acceso a datos para la tabla Lineas_Pedido.
+				─────────────────────────────────────────────────────────
+				+ List<LineaPedido> GetByPedidoId(int pedidoId)
+				  // Obtiene todas las líneas de un pedido
+
+				+ LineaPedido Create(LineaPedido linea)
+				  // Inserta una nueva línea de pedido
+
+				+ bool DeleteByPedidoId(int pedidoId)
+				  // Elimina todas las líneas de un pedido (para actualización)
+
+
+				IProveedorRepository.cs
+				Operaciones de acceso a datos para la tabla Proveedores.
+				─────────────────────────────────────────────────────────
+				+ List<Proveedor> GetAll()
+				  // Obtiene todos los proveedores
+
+				+ Proveedor GetById(int id)
+				  // Obtiene un proveedor por ID
+
+				+ string GetNombreById(int id)
+				  // Obtiene solo el nombre de un proveedor (para DTOs)
+
+
+				IProductoRepository.cs
+				Operaciones de acceso a datos para la tabla Productos.
+				─────────────────────────────────────────────────────────
+				+ List<Producto> GetAll()
+				  // Obtiene todos los productos
+
+				+ Producto GetById(int id)
+				  // Obtiene un producto por ID
+
+				+ string GetNombreById(int id)
+				  // Obtiene solo el nombre de un producto (para DTOs)
+
+
+				IProductoProveedorRepository.cs
+				Operaciones para la tabla intermedia Productos_Proveedor.
+				─────────────────────────────────────────────────────────
+				+ List<ProductoProveedor> GetByProveedorId(int proveedorId)
+				  // Obtiene todos los productos de un proveedor
+
+				+ ProductoProveedor GetByProveedorAndProducto(int proveedorId, int productoId)
+				  // Obtiene el precio de un producto para un proveedor específico
+
+
+				IUserRepository.cs
+				Operaciones de acceso a datos para la tabla Users.
+				─────────────────────────────────────────────────────────
+				+ User GetById(int id)
+				  // Obtiene un usuario por ID
+
+				+ string GetNombreCompletoById(int id)
+				  // Obtiene nombre + apellidos concatenados (para DTOs)
+
+
+
+			UseCases/
+			─────────────────────────────────────────────────────────────
+			Los casos de uso contienen la LÓGICA DE NEGOCIO de la aplicación.
+			Coordinan los repositorios y aplican las reglas del negocio.
+			Son llamados por los controladores.
+			─────────────────────────────────────────────────────────────
+
+				PedidoUseCase.cs
+				Implementa toda la lógica de negocio relacionada con pedidos.
+				─────────────────────────────────────────────────────────
+				- IPedidoRepository pedidoRepository           // Repositorio de pedidos
+				- ILineaPedidoRepository lineaPedidoRepository // Repositorio de líneas
+				- IProveedorRepository proveedorRepository     // Para obtener nombres
+				- IProductoRepository productoRepository       // Para obtener nombres
+				- IUserRepository userRepository               // Para obtener nombres
+
+				+ PedidoUseCase(...)
+				  // Constructor con inyección de dependencias de todos los repos
+
+				+ List<PedidoListDTO> GetAllPedidos()
+				  // 1. Obtiene pedidos del repo
+				  // 2. Para cada pedido, obtiene el nombre del proveedor
+				  // 3. Transforma a PedidoListDTO y devuelve
+
+				+ List<PedidoListDTO> GetPedidosByProveedor(int proveedorId)
+				  // Igual que GetAll pero filtrando por proveedor
+
+				+ List<PedidoListDTO> GetPedidosByEstado(string estado)
+				  // Igual que GetAll pero filtrando por estado
+
+				+ PedidoDetailDTO GetPedidoById(int pedidoId)
+				  // 1. Obtiene el pedido
+				  // 2. Obtiene sus líneas
+				  // 3. Obtiene nombres de proveedor, usuario y productos
+				  // 4. Construye y devuelve PedidoDetailDTO completo
+
+				+ PedidoDetailDTO CreatePedido(PedidoCreateDTO pedidoDto)
+				  // 1. Genera número de pedido único
+				  // 2. Crea entidad Pedido con estado "Pendiente"
+				  // 3. Para cada línea: calcula subtotal y total con IVA
+				  // 4. Calcula totales del pedido
+				  // 5. Guarda pedido y líneas en BD
+				  // 6. Devuelve el pedido creado como DTO
+
+				+ PedidoDetailDTO UpdatePedido(PedidoUpdateDTO pedidoDto)
+				  // 1. Obtiene pedido existente
+				  // 2. Actualiza estado y dirección
+				  // 3. Elimina líneas anteriores
+				  // 4. Crea nuevas líneas
+				  // 5. Recalcula totales
+				  // 6. Guarda cambios y devuelve DTO
+
+				+ bool DeletePedido(int pedidoId)
+				  // 1. Verifica que el pedido existe
+				  // 2. Elimina el pedido (las líneas se borran por CASCADE)
+				  // 3. Devuelve true si se eliminó correctamente
+
+				- decimal CalcularSubtotal(List<LineaPedido> lineas)
+				  // Suma todos los subtotales de las líneas (privado)
+
+				- decimal CalcularImpuestos(List<LineaPedido> lineas)
+				  // Suma todos los importes de IVA de las líneas (privado)
+
+				- decimal CalcularTotal(decimal subtotal, decimal impuestos)
+				  // Suma subtotal + impuestos (privado)
+
+
+				ProveedorUseCase.cs
+				Implementa la lógica de negocio para proveedores.
+				─────────────────────────────────────────────────────────
+				- IProveedorRepository proveedorRepository
+				- IProductoProveedorRepository productoProveedorRepository
+				- IProductoRepository productoRepository
+
+				+ ProveedorUseCase(...)
+				  // Constructor con inyección de dependencias
+
+				+ List<ProveedorDTO> GetAllProveedores()
+				  // Obtiene proveedores activos y los transforma a DTO
+
+				+ ProveedorDTO GetProveedorById(int proveedorId)
+				  // Obtiene un proveedor y lo transforma a DTO
+
+				+ List<ProductoProveedorDTO> GetProductosByProveedor(int proveedorId)
+				  // 1. Obtiene relaciones producto-proveedor
+				  // 2. Para cada una, obtiene datos del producto
+				  // 3. Transforma a ProductoProveedorDTO
+
+
+				ProductoUseCase.cs
+				Implementa la lógica de negocio para productos.
+				─────────────────────────────────────────────────────────
+				- IProductoRepository productoRepository
+
+				+ ProductoUseCase(IProductoRepository productoRepo)
+				  // Constructor con inyección de dependencias
+
+				+ List<ProductoDTO> GetAllProductos()
+				  // Obtiene productos activos y los transforma a DTO
+
+				+ ProductoDTO GetProductoById(int productoId)
+				  // Obtiene un producto y lo transforma a DTO
+
+
+
+		Data/
+			Context/
+			─────────────────────────────────────────────────────────────
+			Contiene el DbContext de Entity Framework Core, que es el puente
+			entre el código C# y la base de datos SQL Server.
+			─────────────────────────────────────────────────────────────
+
+				ERPDbContext.cs
+				Clase principal para interactuar con la base de datos.
+				Gestiona conexiones, mapeo de entidades y operaciones CRUD.
+				─────────────────────────────────────────────────────────
+				+ DbSet<User> Users { get; set; }
+				  // Representa la tabla Users - permite hacer CRUD de usuarios
+
+				+ DbSet<Proveedor> Proveedores { get; set; }
+				  // Representa la tabla Proveedores
+
+				+ DbSet<Producto> Productos { get; set; }
+				  // Representa la tabla Productos
+
+				+ DbSet<Pedido> Pedidos { get; set; }
+				  // Representa la tabla Pedidos
+
+				+ DbSet<LineaPedido> LineasPedido { get; set; }
+				  // Representa la tabla Lineas_Pedido
+
+				+ DbSet<ProductoProveedor> ProductosProveedor { get; set; }
+				  // Representa la tabla Productos_Proveedor
+
+				+ ERPDbContext(DbContextOptions<ERPDbContext> options)
+				  // Constructor que recibe la configuración (connection string)
+
+				# OnModelCreating(ModelBuilder modelBuilder)
+				  // Método protegido donde se configuran:
+				  // - Relaciones entre tablas (FK)
+				  // - Índices únicos
+				  // - Comportamiento de eliminación (CASCADE)
+				  // - Precisión de campos decimales
+
+
+
+			Repos/
+			─────────────────────────────────────────────────────────────
+			Implementaciones concretas de los repositorios.
+			Aquí se escribe el código real que accede a la base de datos
+			usando Entity Framework Core.
+			─────────────────────────────────────────────────────────────
+
+				PedidoRepository.cs
+				Implementa IPedidoRepository - acceso a datos de pedidos.
+				─────────────────────────────────────────────────────────
+				- ERPDbContext context                    // Contexto de BD inyectado
+
+				+ PedidoRepository(ERPDbContext context)
+				  // Constructor que recibe el contexto por inyección
+
+				+ List<Pedido> GetAll()
+				  // return context.Pedidos.Include(p => p.LineasPedido).ToList()
+				  // Obtiene todos los pedidos incluyendo sus líneas
+
+				+ List<Pedido> GetByProveedorId(int proveedorId)
+				  // return context.Pedidos.Where(p => p.IdProveedor == proveedorId).ToList()
+
+				+ List<Pedido> GetByEstado(string estado)
+				  // return context.Pedidos.Where(p => p.Estado == estado).ToList()
+
+				+ Pedido GetById(int id)
+				  // return context.Pedidos.Include(p => p.LineasPedido)
+				  //                       .FirstOrDefault(p => p.Id == id)
+
+				+ Pedido Create(Pedido pedido)
+				  // context.Pedidos.Add(pedido)
+				  // context.SaveChanges()
+				  // return pedido
+
+				+ Pedido Update(Pedido pedido)
+				  // context.Pedidos.Update(pedido)
+				  // context.SaveChanges()
+				  // return pedido
+
+				+ bool Delete(int id)
+				  // var pedido = GetById(id)
+				  // if (pedido == null) return false
+				  // context.Pedidos.Remove(pedido)
+				  // context.SaveChanges()
+				  // return true
+
+				+ string GenerateNumeroPedido()
+				  // Genera formato: PED-{AÑO}-{SECUENCIAL}
+				  // Ejemplo: PED-2024-00001
+
+
+				LineaPedidoRepository.cs
+				Implementa ILineaPedidoRepository - acceso a líneas de pedido.
+				─────────────────────────────────────────────────────────
+				- ERPDbContext context
+
+				+ LineaPedidoRepository(ERPDbContext context)
+
+				+ List<LineaPedido> GetByPedidoId(int pedidoId)
+				  // return context.LineasPedido.Where(l => l.IdPedido == pedidoId).ToList()
+
+				+ LineaPedido Create(LineaPedido linea)
+				  // context.LineasPedido.Add(linea)
+				  // context.SaveChanges()
+				  // return linea
+
+				+ bool DeleteByPedidoId(int pedidoId)
+				  // var lineas = GetByPedidoId(pedidoId)
+				  // context.LineasPedido.RemoveRange(lineas)
+				  // context.SaveChanges()
+				  // return true
+
+
+				ProveedorRepository.cs
+				Implementa IProveedorRepository - acceso a datos de proveedores.
+				─────────────────────────────────────────────────────────
+				- ERPDbContext context
+
+				+ ProveedorRepository(ERPDbContext context)
+
+				+ List<Proveedor> GetAll()
+				  // return context.Proveedores.Where(p => p.Activo).ToList()
+
+				+ Proveedor GetById(int id)
+				  // return context.Proveedores.FirstOrDefault(p => p.Id == id)
+
+				+ string GetNombreById(int id)
+				  // return context.Proveedores.Where(p => p.Id == id)
+				  //                           .Select(p => p.NombreEmpresa)
+				  //                           .FirstOrDefault()
+
+
+				ProductoRepository.cs
+				Implementa IProductoRepository - acceso a datos de productos.
+				─────────────────────────────────────────────────────────
+				- ERPDbContext context
+
+				+ ProductoRepository(ERPDbContext context)
+
+				+ List<Producto> GetAll()
+				  // return context.Productos.Where(p => p.Activo).ToList()
+
+				+ Producto GetById(int id)
+				  // return context.Productos.FirstOrDefault(p => p.Id == id)
+
+				+ string GetNombreById(int id)
+				  // return context.Productos.Where(p => p.Id == id)
+				  //                         .Select(p => p.Nombre)
+				  //                         .FirstOrDefault()
+
+
+				ProductoProveedorRepository.cs
+				Implementa IProductoProveedorRepository - relación productos-proveedores.
+				─────────────────────────────────────────────────────────
+				- ERPDbContext context
+
+				+ ProductoProveedorRepository(ERPDbContext context)
+
+				+ List<ProductoProveedor> GetByProveedorId(int proveedorId)
+				  // return context.ProductosProveedor
+				  //               .Where(pp => pp.IdProveedor == proveedorId && pp.Activo)
+				  //               .ToList()
+
+				+ ProductoProveedor GetByProveedorAndProducto(int proveedorId, int productoId)
+				  // return context.ProductosProveedor
+				  //               .FirstOrDefault(pp => pp.IdProveedor == proveedorId 
+				  //                                  && pp.IdProducto == productoId)
+
+
+				UserRepository.cs
+				Implementa IUserRepository - acceso a datos de usuarios.
+				─────────────────────────────────────────────────────────
+				- ERPDbContext context
+
+				+ UserRepository(ERPDbContext context)
+
+				+ User GetById(int id)
+				  // return context.Users.FirstOrDefault(u => u.Id == id)
+
+				+ string GetNombreCompletoById(int id)
+				  // return context.Users.Where(u => u.Id == id)
+				  //                      .Select(u => u.Nombre + " " + u.Apellidos)
+				  //                      .FirstOrDefault()
+
+
+
+		Controllers/
+		─────────────────────────────────────────────────────────────
+		Los controladores son los ENDPOINTS de la API.
+		Reciben las peticiones HTTP, llaman a los casos de uso
+		y devuelven las respuestas en formato JSON.
+		─────────────────────────────────────────────────────────────
+
+			PedidosController.cs
+			Controlador REST para gestionar pedidos a proveedores.
+			Ruta base: /api/pedidos
+			─────────────────────────────────────────────────────────
+			- IPedidoUseCase pedidoUseCase                // Caso de uso inyectado
+
+			+ PedidosController(IPedidoUseCase useCase)
+			  // Constructor con inyección del caso de uso
+
+			+ [HttpGet] ActionResult<ApiResponseDTO<List<PedidoListDTO>>> GetAll()
+			  // GET /api/pedidos
+			  // Devuelve lista de todos los pedidos
+			  // Llama a: pedidoUseCase.GetAllPedidos()
+
+			+ [HttpGet("{id}")] ActionResult<ApiResponseDTO<PedidoDetailDTO>> GetById(int id)
+			  // GET /api/pedidos/5
+			  // Devuelve detalle completo de un pedido
+			  // Llama a: pedidoUseCase.GetPedidoById(id)
+
+			+ [HttpGet("proveedor/{proveedorId}")] ActionResult<ApiResponseDTO<List<PedidoListDTO>>> GetByProveedor(int proveedorId)
+			  // GET /api/pedidos/proveedor/3
+			  // Devuelve pedidos de un proveedor específico
+			  // Llama a: pedidoUseCase.GetPedidosByProveedor(proveedorId)
+
+			+ [HttpGet("estado/{estado}")] ActionResult<ApiResponseDTO<List<PedidoListDTO>>> GetByEstado(string estado)
+			  // GET /api/pedidos/estado/Pendiente
+			  // Devuelve pedidos filtrados por estado
+			  // Llama a: pedidoUseCase.GetPedidosByEstado(estado)
+
+			+ [HttpPost] ActionResult<ApiResponseDTO<PedidoDetailDTO>> Create(PedidoCreateDTO pedidoDto)
+			  // POST /api/pedidos
+			  // Body: { idProveedor, idUsuario, direccionEntrega, lineasPedido: [...] }
+			  // Crea un nuevo pedido
+			  // Llama a: pedidoUseCase.CreatePedido(pedidoDto)
+
+			+ [HttpPut] ActionResult<ApiResponseDTO<PedidoDetailDTO>> Update(PedidoUpdateDTO pedidoDto)
+			  // PUT /api/pedidos
+			  // Body: { id, estado, direccionEntrega, lineasPedido: [...] }
+			  // Actualiza un pedido existente
+			  // Llama a: pedidoUseCase.UpdatePedido(pedidoDto)
+
+			+ [HttpDelete("{id}")] ActionResult<ApiResponseDTO<bool>> Delete(int id)
+			  // DELETE /api/pedidos/5
+			  // Elimina un pedido y sus líneas
+			  // Llama a: pedidoUseCase.DeletePedido(id)
+
+
+			ProveedoresController.cs
+			Controlador REST para consultar proveedores.
+			Ruta base: /api/proveedores
+			─────────────────────────────────────────────────────────
+			- IProveedorUseCase proveedorUseCase
+
+			+ ProveedoresController(IProveedorUseCase useCase)
+
+			+ [HttpGet] ActionResult<ApiResponseDTO<List<ProveedorDTO>>> GetAll()
+			  // GET /api/proveedores
+			  // Devuelve lista de todos los proveedores activos
+
+			+ [HttpGet("{id}")] ActionResult<ApiResponseDTO<ProveedorDTO>> GetById(int id)
+			  // GET /api/proveedores/3
+			  // Devuelve datos de un proveedor
+
+			+ [HttpGet("{id}/productos")] ActionResult<ApiResponseDTO<List<ProductoProveedorDTO>>> GetProductosByProveedor(int id)
+			  // GET /api/proveedores/3/productos
+			  // Devuelve los productos que ofrece el proveedor con sus precios
+
+
+			ProductosController.cs
+			Controlador REST para consultar productos.
+			Ruta base: /api/productos
+			─────────────────────────────────────────────────────────
+			- IProductoUseCase productoUseCase
+
+			+ ProductosController(IProductoUseCase useCase)
+
+			+ [HttpGet] ActionResult<ApiResponseDTO<List<ProductoDTO>>> GetAll()
+			  // GET /api/productos
+			  // Devuelve lista de todos los productos activos
+
+			+ [HttpGet("{id}")] ActionResult<ApiResponseDTO<ProductoDTO>> GetById(int id)
+			  // GET /api/productos/5
+			  // Devuelve datos de un producto
+
+
+
+		Program.cs
+		─────────────────────────────────────────────────────────────
+		Punto de entrada de la aplicación. Configura todos los servicios,
+		middleware y arranca el servidor.
+		─────────────────────────────────────────────────────────────
+		
+		Configuraciones principales:
+		
+		1. INYECCIÓN DE DEPENDENCIAS (DI):
+		   // Registra los repositorios - cuando alguien pida la interfaz, 
+		   // el sistema le dará la implementación concreta
+		   builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
+		   builder.Services.AddScoped<ILineaPedidoRepository, LineaPedidoRepository>();
+		   builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
+		   builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+		   builder.Services.AddScoped<IProductoProveedorRepository, ProductoProveedorRepository>();
+		   builder.Services.AddScoped<IUserRepository, UserRepository>();
+		   
+		   // Registra los casos de uso
+		   builder.Services.AddScoped<IPedidoUseCase, PedidoUseCase>();
+		   builder.Services.AddScoped<IProveedorUseCase, ProveedorUseCase>();
+		   builder.Services.AddScoped<IProductoUseCase, ProductoUseCase>();
+
+		2. CONFIGURACIÓN DE ENTITY FRAMEWORK (conexión a Azure SQL):
+		   // Configura el DbContext para usar SQL Server con la cadena de conexión
+		   builder.Services.AddDbContext<ERPDbContext>(options =>
+		       options.UseSqlServer(
+		           builder.Configuration.GetConnectionString("DefaultConnection")
+		       ));
+
+		3. CONFIGURACIÓN DE CORS (para que Angular pueda llamar a la API):
+		   // Permite que el frontend Angular haga peticiones a esta API
+		   builder.Services.AddCors(options => {
+		       options.AddPolicy("AllowAngular", policy => {
+		           policy.WithOrigins("http://localhost:4200", "https://tu-app.com")
+		                 .AllowAnyMethod()
+		                 .AllowAnyHeader();
+		       });
+		   });
+
+		4. SWAGGER (documentación de API):
+		   // Genera documentación automática de los endpoints
+		   builder.Services.AddEndpointsApiExplorer();
+		   builder.Services.AddSwaggerGen();
+
+		5. CONTROLADORES:
+		   // Habilita el uso de controladores MVC
+		   builder.Services.AddControllers();
+
+		6. MIDDLEWARE PIPELINE (orden de ejecución):
+		   var app = builder.Build();
+		   app.UseCors("AllowAngular");    // Aplica política CORS
+		   app.UseSwagger();                // Habilita Swagger JSON
+		   app.UseSwaggerUI();              // Habilita interfaz visual de Swagger
+		   app.MapControllers();            // Mapea las rutas de los controladores
+		   app.Run();                       // Inicia el servidor
+
+
+
+		appsettings.json
+		─────────────────────────────────────────────────────────────
+		Archivo de configuración de la aplicación.
+		Contiene valores que pueden cambiar entre entornos (dev, prod).
+		NO SUBIR A GIT con credenciales reales.
+		─────────────────────────────────────────────────────────────
+		{
+		  "ConnectionStrings": {
+		    "DefaultConnection": "Server=tcp:tu-servidor.database.windows.net,1433;
+		                          Database=ERP_PedidosProveedores;
+		                          User ID=tu-usuario;
+		                          Password=tu-password;
+		                          Encrypt=True;
+		                          TrustServerCertificate=False;"
+		  },
+		  "Logging": {
+		    "LogLevel": {
+		      "Default": "Information",
+		      "Microsoft.AspNetCore": "Warning"
+		    }
+		  },
+		  "AllowedHosts": "*"
+		}
+
+
+
+================================================================================
+                            ESTRUCTURA DE CARPETAS FINAL
+================================================================================
+
+Backend/
+└── API/
+    ├── Controllers/
+    │   ├── PedidosController.cs      # Endpoints CRUD de pedidos
+    │   ├── ProveedoresController.cs  # Endpoints de proveedores
+    │   └── ProductosController.cs    # Endpoints de productos
+    │
+    ├── Domain/
+    │   ├── Entities/                 # Modelos que mapean a tablas BD
+    │   │   ├── User.cs
+    │   │   ├── Proveedor.cs
+    │   │   ├── Producto.cs
+    │   │   ├── Pedido.cs
+    │   │   ├── LineaPedido.cs
+    │   │   └── ProductoProveedor.cs
+    │   │
+    │   ├── DTOs/                     # Objetos de transferencia de datos
+    │   │   ├── PedidoListDTO.cs
+    │   │   ├── PedidoDetailDTO.cs
+    │   │   ├── PedidoCreateDTO.cs
+    │   │   ├── PedidoUpdateDTO.cs
+    │   │   ├── LineaPedidoDTO.cs
+    │   │   ├── LineaPedidoCreateDTO.cs
+    │   │   ├── ProveedorDTO.cs
+    │   │   ├── ProductoDTO.cs
+    │   │   ├── ProductoProveedorDTO.cs
+    │   │   └── ApiResponseDTO.cs
+    │   │
+    │   ├── Interfaces/               # Contratos de casos de uso
+    │   │   ├── IPedidoUseCase.cs
+    │   │   ├── IProveedorUseCase.cs
+    │   │   └── IProductoUseCase.cs
+    │   │
+    │   ├── Repos/                    # Contratos de repositorios
+    │   │   ├── IPedidoRepository.cs
+    │   │   ├── ILineaPedidoRepository.cs
+    │   │   ├── IProveedorRepository.cs
+    │   │   ├── IProductoRepository.cs
+    │   │   ├── IProductoProveedorRepository.cs
+    │   │   └── IUserRepository.cs
+    │   │
+    │   └── UseCases/                 # Lógica de negocio
+    │       ├── PedidoUseCase.cs
+    │       ├── ProveedorUseCase.cs
+    │       └── ProductoUseCase.cs
+    │
+    ├── Data/
+    │   ├── Context/                  # Contexto de Entity Framework
+    │   │   └── ERPDbContext.cs
+    │   │
+    │   └── Repos/                    # Implementaciones de repositorios
+    │       ├── PedidoRepository.cs
+    │       ├── LineaPedidoRepository.cs
+    │       ├── ProveedorRepository.cs
+    │       ├── ProductoRepository.cs
+    │       ├── ProductoProveedorRepository.cs
+    │       └── UserRepository.cs
+    │
+    ├── Program.cs                    # Punto de entrada y configuración
+    └── appsettings.json              # Configuración (connection string, etc.)
+
+
+
+================================================================================
+                                ESTADOS DE PEDIDO
+================================================================================
+
+Estados posibles para un pedido (campo Estado en tabla Pedidos):
+
+	"Pendiente"    -> Estado inicial al crear el pedido
+	"Aprobado"     -> Pedido revisado y aprobado por supervisor
+	"En Proceso"   -> El proveedor está preparando el pedido
+	"Enviado"      -> El pedido ha sido enviado por el proveedor
+	"Recibido"     -> El pedido ha llegado al almacén
+	"Cancelado"    -> El pedido fue cancelado
+
+
+
+================================================================================
+                                ENDPOINTS API
+================================================================================
+
+Base URL: https://[tu-app].azurewebsites.net/api
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PEDIDOS                                                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ GET    /api/pedidos                         Lista todos los pedidos         │
+│ GET    /api/pedidos/{id}                    Detalle de un pedido            │
+│ GET    /api/pedidos/proveedor/{proveedorId} Pedidos por proveedor           │
+│ GET    /api/pedidos/estado/{estado}         Pedidos por estado              │
+│ POST   /api/pedidos                         Crear nuevo pedido              │
+│ PUT    /api/pedidos                         Actualizar pedido               │
+│ DELETE /api/pedidos/{id}                    Eliminar pedido                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PROVEEDORES                                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ GET    /api/proveedores                     Lista todos los proveedores     │
+│ GET    /api/proveedores/{id}                Detalle de un proveedor         │
+│ GET    /api/proveedores/{id}/productos      Productos de un proveedor       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PRODUCTOS                                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ GET    /api/productos                       Lista todos los productos       │
+│ GET    /api/productos/{id}                  Detalle de un producto          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+
+================================================================================
+                            FLUJO DE UNA PETICIÓN
+================================================================================
+
+Ejemplo: GET /api/pedidos/5 (obtener detalle de pedido con ID 5)
+
+1. CONTROLLER (PedidosController.cs)
+   └─> Recibe la petición HTTP
+   └─> Extrae el parámetro "id" de la URL
+   └─> Llama a: pedidoUseCase.GetPedidoById(5)
+
+2. USE CASE (PedidoUseCase.cs)
+   └─> Aplica lógica de negocio
+   └─> Llama a: pedidoRepository.GetById(5)
+   └─> Llama a: proveedorRepository.GetNombreById(pedido.IdProveedor)
+   └─> Llama a: userRepository.GetNombreCompletoById(pedido.IdUsuario)
+   └─> Para cada línea, obtiene nombre del producto
+   └─> Construye y retorna PedidoDetailDTO
+
+3. REPOSITORY (PedidoRepository.cs)
+   └─> Ejecuta query con Entity Framework
+   └─> context.Pedidos.Include(p => p.LineasPedido)
+   │                  .FirstOrDefault(p => p.Id == 5)
+
+4. DBCONTEXT (ERPDbContext.cs)
+   └─> Traduce LINQ a SQL
+   └─> Ejecuta query contra Azure SQL Server
+   └─> Mapea resultado a entidad Pedido
+
+5. RESPUESTA (camino de vuelta)
+   └─> Repository retorna Pedido al UseCase
+   └─> UseCase construye PedidoDetailDTO y lo retorna al Controller
+   └─> Controller envuelve en ApiResponseDTO
+   └─> Controller retorna Ok(response) como JSON
+
+
+
+================================================================================
+                                LEYENDA
+================================================================================
+
+Símbolos usados en este documento:
+
+	-  Indica un campo/propiedad PRIVADO
+	+  Indica un campo/propiedad/método PÚBLICO
+	#  Indica un método PROTEGIDO
+	// Comentario explicativo
+	-> Indica retorno o navegación
+	FK Foreign Key (clave foránea)
+	BD Base de Datos
+	DTO Data Transfer Object
+	CRUD Create, Read, Update, Delete
+
+Carpetas nuevas:
+
+Enums/ — Se creó EstadoPedido como enum para reemplazar los strings mágicos ("Pendiente", "Aprobado"...) y tener control tipado de los estados.
+Exceptions/ — Se creó una jerarquía de excepciones de dominio (DomainException → EntityNotFoundException, InvalidStateTransitionException, BusinessRuleException) con ErrorCode para que el frontend identifique el tipo de error.
+
+Cambios en Entidades:
+
+Todas las entidades — Se añadieron Data Annotations ([Required], [Range], [StringLength], [EmailAddress], [RegularExpression], [Column(TypeName)]) con mensajes de error en español para que funcione ModelState.IsValid.
+Todas las entidades — Se añadió un constructor vacío para Entity Framework además del constructor con parámetros.
+Pedido.cs — Se añadió la máquina de estados con TransicionesValidas (diccionario estático), y los métodos CambiarEstado(), PermiteEdicionLineas(), PermiteEliminacion(), GetEstadoActual() y RecalcularTotales().
+LineaPedido.cs — Se añadió el método CalcularImportes() que calcula Subtotal y TotalLinea automáticamente desde el constructor.
+
+Cambios en DTOs:
+
+PedidoCreateDTO y LineaPedidoCreateDTO — Se añadieron Data Annotations de validación ([Required], [Range], [MinLength]).
+PedidoUpdateDTO — Se añadieron validaciones y se hizo DireccionEntrega y LineasPedido opcionales (nullable) para permitir actualizaciones parciales.
+ApiResponseDTO — Se añadieron métodos factory estáticos Ok() y Error() para simplificar su uso en controllers.
+Cambios en Repos (interfaces):
+
+Los métodos que devolvían entidades (GetById, GetNombreById, etc.) ahora devuelven tipos nullable (Pedido?, string?) en lugar de asumir que siempre encuentran resultado.
+
+Cambios en UseCases:
+
+PedidoUseCase — Se inyectó IProductoProveedorRepository (no estaba en el txt) para validar que los productos pertenezcan al catálogo del proveedor. Se añadieron todos los métodos de validación privados: ValidarProveedorActivo(), ValidarUsuarioActivo(), ValidarLineasNoVacias(), ValidarProductosEnCatalogoProveedor(), ValidarEstado().
+ProveedorUseCase y ProductoUseCase — Se añadió filtrado por Activo en los listados y se lanzan EntityNotFoundException en los GetById cuando no se encuentra la entidad.
